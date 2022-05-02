@@ -1,7 +1,8 @@
 (ns btccli.core
   (:use [clojure.pprint])
   (:require [clojure.data.json :as json]
-            [clojure.repl :refer [source doc]])
+            [clojure.repl :refer [source doc]]
+            [clojure.java.shell :refer [sh]])
   (:import [com.jcraft.jsch JSch]
            [java.io ByteArrayOutputStream]))
 
@@ -34,6 +35,12 @@
 
 (defn umbrel-cli [password cmd]
   (umbrel password (format "cd ~/umbrel/bin; docker exec bitcoin bitcoin-cli %s" cmd)))
+
+(defn bitcoin-core-cli [password cmd]
+  (let [res (sh (format "bitcoin-cli %s" cmd))]
+    (if (= (:exit res) 0)
+      (:out res)
+      (throw (IllegalStateException.)))))
     
 (defn format-str-of [n]
   (reduce 
@@ -42,12 +49,6 @@
         (str acc " %s") 
         (str "%s"))) 
     nil (range n)))
-
-(defn remove-last-if-optional [args]
-  (if (vector? (last args))
-    (vec (butlast args))
-    args))
-
 
 (defn args-of [args]
   (if-let [opt (last args)]
@@ -78,7 +79,23 @@
   ([password cli cmd]
     `(def-api ~password ~cli ~cmd identity))
   )
-  
+
+(defn only-names [l]
+  (let [l (.trim l)]
+    (not (or (empty? l) (= (.indexOf l "==") 0)))
+      #_(cond 
+         (empty? l) false
+         (= (.indexOf l "==") 0) false
+         :else
+         true
+         )))
+
+(defn parse-names [s]
+  (let [lines (.split s "\n")]
+    (map (comp first #(.split % "[ \n]")) (filter only-names lines)))
+  )
+
+
 (defn create-api
   ([password]
     (create-api password umbrel-cli))
@@ -154,7 +171,7 @@
   (def-api password cli createpsbt identity) ;[{txid:hex,vout:n,sequence:n},...] [{address:amount,...},{data:hex},...] ( locktime replaceable )
   (def-api password cli createrawtransaction identity); [{txid:hex,vout:n,sequence:n},...] [{address:amount,...},{data:hex},...] ( locktime replaceable )
   (def-api password cli decodepsbt identity [psbt])
-  (def-api password cli decoderawtransaction identity [hexstring [iswitness]])
+  (def-api password cli decoderawtransaction json/read-str [hexstring [iswitness]])
   (def-api password cli decodescript identity [hexstring])
   (def-api password cli finalizepsbt identity [psbt [extract]])
   (def-api password cli fundrawtransaction identity [hexstring [options iswitness]])
@@ -243,7 +260,10 @@
 
 ;  == Zmq ==
   (def-api password cli getzmqnotifications json/read-str)
-  
 ))
 
 
+(comment
+  (defn tx-of [block] (block "tx"))
+  (pprint (decoderawtransaction (getrawtransaction (first ((getblock (getblockhash 1)) "tx")))))
+  )
