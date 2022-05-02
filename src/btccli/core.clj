@@ -82,13 +82,7 @@
 
 (defn only-names [l]
   (let [l (.trim l)]
-    (not (or (empty? l) (= (.indexOf l "==") 0)))
-      #_(cond 
-         (empty? l) false
-         (= (.indexOf l "==") 0) false
-         :else
-         true
-         )))
+    (not (or (empty? l) (= (.indexOf l "==") 0)))))
 
 (defn parse-names [s]
   (let [lines (.split s "\n")]
