@@ -64,7 +64,7 @@
 (defn arity-of [password cli cmd conv-fn args]
   `(~args
      (~conv-fn 
-       (~cli ~password (format ~(format-str-of (inc (count args))) ~(str cmd) ~@args)))))
+       (~cli ~password (dbg (format ~(format-str-of (inc (count args))) ~(str cmd) ~@args))))))
 
 (defn defn-of [password cli cmd conv-fn args]
   `(defn 
@@ -94,6 +94,11 @@
   ([password]
     (create-api password umbrel-cli))
   ([password cli]
+  #_(def cmd-map 
+     (let [cmd-names (parse-names (cli password "help"))]
+       (apply merge (map (fn [c] {c (cli password (format "help %s" c))}) cmd-names))))
+    
+    
 ;   == Blockchain ==   
   (def-api password cli getbestblockhash .trim)
   (def-api password cli getblock json/read-str [blockhash [verbosity]])
@@ -195,7 +200,7 @@
   (def-api password cli addmultisigaddress identity [nrequired keys [label address_type]])
   (def-api password cli backupwallet identity [destination])
   (def-api password cli bumpfee identity [txid [options]])
-  (def-api password cli createwallet identity [wallet_name [disable_private_keys blank passphrase avoid_reuse descriptors load_on_startup external_signe]])
+  (def-api password cli createwallet json/read-str [wallet_name [disable_private_keys blank passphrase avoid_reuse descriptors load_on_startup external_signe]])
   (def-api password cli dumpprivkey identity [address])
   (def-api password cli dumpwallet identity [filename])
   (def-api password cli encryptwallet identity [passphrase])
@@ -203,7 +208,7 @@
   (def-api password cli getaddressinfo identity [address])
   (def-api password cli getbalance identity [[dummy minconf include_watchonly avoid_reuse]])
   (def-api password cli getbalances identity) 
-  (def-api password cli getnewaddress identity [[label address_type]])
+  (def-api password cli getnewaddress .trim [[label address_type]])
   (def-api password cli getrawchangeaddress identity [[address_type]])
   (def-api password cli getreceivedbyaddress identity [address [minconf]])
   (def-api password cli getreceivedbylabel identity [label [minconf]])
@@ -260,4 +265,5 @@
 (comment
   (defn tx-of [block] (block "tx"))
   (pprint (decoderawtransaction (getrawtransaction (first ((getblock (getblockhash 1)) "tx")))))
+  (addmultisigaddress 2 [(getnewaddress) (getnewaddress) (getnewaddress)])
   )
