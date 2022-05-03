@@ -75,10 +75,14 @@
           [] 
           ba)))))
 
+(defn apply-json [args]
+  (map (fn [a] `(json/json-str ~a)) args))
+
+
 (defn arity-of [password cli cmd conv-fn args]
-  `(~args
-     (~conv-fn 
-       (~cli ~password (escape-quotation (format ~(format-str-of (inc (count args))) ~(str cmd) ~@args))))))
+    `(~args
+       (~conv-fn 
+         (~cli ~password (escape-quotation (format ~(format-str-of (inc (count args))) ~(str cmd) ~@(apply-json args)))))))
 
 (defn defn-of [password cli cmd conv-fn args]
   `(defn 
