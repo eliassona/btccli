@@ -280,7 +280,11 @@
 
 ;  == Zmq ==
   (def-api password cli getzmqnotifications json/read-str)
+  
+  (defmacro h [cmd]
+    `(println (help ~(str cmd))))
 ))
+
 
 
 (comment
