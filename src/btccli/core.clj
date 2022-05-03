@@ -75,8 +75,11 @@
           [] 
           ba)))))
 
+(defn apply-json-if-coll [arg]
+  (if (coll? arg) (json/json-str arg) arg))
+
 (defn apply-json [args]
-  (map (fn [a] `(json/json-str ~a)) args))
+  (map (fn [a] `(apply-json-if-coll ~a)) args))
 
 
 (defn arity-of [password cli cmd conv-fn args]
