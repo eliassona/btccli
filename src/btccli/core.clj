@@ -61,10 +61,24 @@
      [args])
     [args]))
 
+(def double-quote 34)
+(def backslash 92)
+
+(def escaped-double-quoute [backslash double-quote])
+
+(defn escape-quotation [s]
+  (let [ba (.getBytes s)]
+    (String. 
+      (byte-array 
+        (reduce 
+          (fn [acc v] (if (= v double-quote) (vec (concat acc escaped-double-quoute)) (conj acc v))) 
+          [] 
+          ba)))))
+
 (defn arity-of [password cli cmd conv-fn args]
   `(~args
      (~conv-fn 
-       (~cli ~password (dbg (format ~(format-str-of (inc (count args))) ~(str cmd) ~@args))))))
+       (~cli ~password (escape-quotation (format ~(format-str-of (inc (count args))) ~(str cmd) ~@args))))))
 
 (defn defn-of [password cli cmd conv-fn args]
   `(defn 
@@ -185,7 +199,7 @@
   (def-api password cli enumeratesigners identity) 
 
 ;  == Util ==
-  (def-api password cli createmultisig identity [nrequired keys [address_type]])
+  (def-api password cli createmultisig json/read-str [nrequired keys [address_type]])
   (def-api password cli deriveaddresses identity [descriptor [range]])
   (def-api password cli estimatesmartfee identity [conf_target [estimate_mode]])
   (def-api password cli getdescriptorinfo identity [descriptor])
