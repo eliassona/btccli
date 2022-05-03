@@ -2,7 +2,8 @@
   (:use [clojure.pprint])
   (:require [clojure.data.json :as json]
             [clojure.repl :refer [source doc]]
-            [clojure.java.shell :refer [sh]])
+            [clojure.java.shell :refer [sh]]
+            [base58.core :as base58])
   (:import [com.jcraft.jsch JSch]
            [java.io ByteArrayOutputStream]))
 
@@ -10,6 +11,28 @@
   `(let [x# ~body]
      (println "dbg:" '~body "=" x#)
      x#))
+
+
+(defn ssh-session [user host port password]
+  (let [session (.getSession (JSch.) user host port)
+        out (ByteArrayOutputStream.)]
+	  (.setPassword session password)
+	  (.setConfig session "StrictHostKeyChecking" "no")
+	  (.connect session)
+    session))
+
+(defn ssh-command [session command]
+  (let [out (ByteArrayOutputStream.)
+        channel (.openChannel session "exec")]
+    (try 
+	    (.setCommand channel command)
+	    (.setOutputStream channel out)
+	    (.connect channel)
+	    (while (.isConnected channel)
+	      (Thread/sleep 100))
+	    (String. (.toByteArray out))
+      (finally 
+        (.disconnect channel)))))
 
 (defn ssh [user host port password command]
   (let [session (.getSession (JSch.) user host port)
@@ -226,9 +249,9 @@
   (def-api password cli dumpwallet identity [filename])
   (def-api password cli encryptwallet identity [passphrase])
   (def-api password cli getaddressesbylabel identity [label])
-  (def-api password cli getaddressinfo identity [address])
-  (def-api password cli getbalance identity [[dummy minconf include_watchonly avoid_reuse]])
-  (def-api password cli getbalances identity) 
+  (def-api password cli getaddressinfo json/read-str [address])
+  (def-api password cli getbalance json/read-str [[dummy minconf include_watchonly avoid_reuse]])
+  (def-api password cli getbalances json/read-str) 
   (def-api password cli getnewaddress .trim [[label address_type]])
   (def-api password cli getrawchangeaddress identity [[address_type]])
   (def-api password cli getreceivedbyaddress identity [address [minconf]])
@@ -283,12 +306,43 @@
   
   (defmacro h [cmd]
     `(println (help ~(str cmd))))
+  
+  (defn _blocks 
+    ([block-fn] (_blocks block-fn 0 (getblockcount)))
+    ([block-fn i n] (if (< i n)
+             (lazy-seq (cons (block-fn (getblockhash i)) (_blocks block-fn (inc i) n)))
+             '())))
+  
+  (defn blocks 
+    "get all blocks as a lazy seq, remember don't type (blocks) in the repl, it will take forever"
+    []
+    (_blocks getblock))
+  
+  (defn block-headers 
+    "get all block headers as a lazy seq, remember don't type (blockheaders) in the repl, it will take forever"
+    []
+    (_blocks getblockheader))
+  
+  (defn add-vout [acc v]
+    (dbg v)
+    (let [values (map #(% "value") v)]
+      (+ acc (reduce + values))))
+  
+  (defn output-sum-of [block-height]
+    (let [b (getblock (getblockhash block-height))
+          txs (b "tx")
+          decoded-txs (map (comp decoderawtransaction getrawtransaction) txs)
+          outs (map #(% "vout") decoded-txs)]
+      (reduce add-vout 0.0 outs)
+      ))
+  
 ))
 
 
 
 (comment
-  (defn tx-of [block] (block "tx"))
-  (pprint (decoderawtransaction (getrawtransaction (first ((getblock (getblockhash 1)) "tx")))))
-  (addmultisigaddress 2 [(getnewaddress) (getnewaddress) (getnewaddress)])
+  (decoderawtransaction (getrawtransaction (first ((getblock (getblockhash 1)) "tx"))))
+  (createmultisig 2 ["03789ed0bb717d88f7d321a368d905e7430207ebbd82bd342cf11ae157a7ace5fd" 
+                "03dbc6764b8884a92e871274b87583e6d5c2a58819473e17e107ef3f6aa5a61626"])
+  (getblock (getblockhash 0))
   )

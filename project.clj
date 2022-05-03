@@ -5,5 +5,6 @@
             :url "https://www.eclipse.org/legal/epl-2.0/"}
   :dependencies [[org.clojure/clojure "1.10.0"]
                  [org.clojure/data.json "0.2.6"]
-                 [com.jcraft/jsch "0.1.55"]]
+                 [com.jcraft/jsch "0.1.55"]
+                 [rm-hull/base58 "0.1.0"]]
   :repl-options {:init-ns btccli.core})
