@@ -309,14 +309,17 @@
 	      (reduce add-vout 0.0 outs)))
    
    (defmacro btc-doc [the-fn]
-     `(let [m# (-> ~the-fn var meta)]
-        (println (format 
-                   "%s/%s\n%s\n\n%s" 
-                   (-> m# :ns str) 
-                   (:name m#)
-                   (:arglists m#)
-                   (help (:name m#))
-                   ))))
+     `(let [m# (-> ~the-fn var meta)
+            name# (:name m#)]
+        (if (contains? ~cmd-names (str name#))
+          (println (format 
+                     "%s/%s\n%s\n\n%s" 
+                     (-> m# :ns str) 
+                     name#
+                     (:arglists m#)
+                     (help name#)
+                     ))
+          (throw (IllegalArgumentException. (format "%s is not a bitcoin function" name#))))))
    
    session)))
 
@@ -331,3 +334,4 @@
   ;problem tx, it's too big for ssh?
   (def raw-tx (getrawtransaction (nth ((getblock (getblockhash 200000)) "tx") 384)))
   )
+
