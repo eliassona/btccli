@@ -112,10 +112,9 @@
   ([password]
     (create-api password umbrel-cli))
   ([password cli]
-  #_(def cmd-map 
-     (let [cmd-names (parse-names (cli password "help"))]
-       (apply merge (map (fn [c] {c (cli password (format "help %s" c))}) cmd-names))))
-  (let [session (ssh-session "umbrel" "umbrel.local" 22 password)]    
+  
+  (let [session (ssh-session "umbrel" "umbrel.local" 22 password)
+        cmd-names (set (parse-names (cli session "help")))]    
     
 	;   == Blockchain ==   
 	  (def-api session cli getbestblockhash .trim)
@@ -181,7 +180,7 @@
 	  (def-api session cli setnetworkactive identity [state])
 	
 	;  == Rawtransactions ==
-	  (def-api session cli analyzepsbt identity [psbt])
+	  (def-api session cli analyzepsbt json/read-str [psbt])
 	  (def-api session cli combinepsbt identity [psbts])
 	  (def-api session cli combinerawtransaction identity [hexstrings])
 	  (def-api session cli converttopsbt identity [hexstring [permitsigdata iswitness]])
@@ -205,11 +204,11 @@
 	;  == Util ==
 	  (def-api session cli createmultisig json/read-str [nrequired keys [address_type]])
 	  (def-api session cli deriveaddresses identity [descriptor [range]])
-	  (def-api session cli estimatesmartfee identity [conf_target [estimate_mode]])
+	  (def-api session cli estimatesmartfee json/read-str [conf_target [estimate_mode]])
 	  (def-api session cli getdescriptorinfo identity [descriptor])
-	  (def-api session cli getindexinfo identity [[index_name]])
+	  (def-api session cli getindexinfo json/read-str [[index_name]])
 	  (def-api session cli signmessagewithprivkey identity [privkey message])
-	  (def-api session cli validateaddress identity [address])
+	  (def-api session cli validateaddress json/read-str [address])
 	  (def-api session cli verifymessage identity [address signature message])
 	
 	;  == Wallet ==
@@ -219,7 +218,7 @@
 	  (def-api session cli backupwallet identity [destination])
 	  (def-api session cli bumpfee identity [txid [options]])
 	  (def-api session cli createwallet json/read-str [wallet_name [disable_private_keys blank passphrase avoid_reuse descriptors load_on_startup external_signe]])
-	  (def-api session cli dumpprivkey identity [address])
+	  (def-api session cli dumpprivkey .trim [address])
 	  (def-api session cli dumpwallet identity [filename])
 	  (def-api session cli encryptwallet identity [passphrase])
 	  (def-api session cli getaddressesbylabel identity [label])
@@ -227,12 +226,12 @@
 	  (def-api session cli getbalance json/read-str [[dummy minconf include_watchonly avoid_reuse]])
 	  (def-api session cli getbalances json/read-str) 
 	  (def-api session cli getnewaddress .trim [[label address_type]])
-	  (def-api session cli getrawchangeaddress identity [[address_type]])
-	  (def-api session cli getreceivedbyaddress identity [address [minconf]])
+	  (def-api session cli getrawchangeaddress .trim [[address_type]])
+	  (def-api session cli getreceivedbyaddress json/read-str [address [minconf]])
 	  (def-api session cli getreceivedbylabel identity [label [minconf]])
 	  (def-api session cli gettransaction identity [txid [include_watchonly verbose]])
 	  (def-api session cli getunconfirmedbalance identity) 
-	  (def-api session cli getwalletinfo identity) 
+	  (def-api session cli getwalletinfo json/read-str) 
 	  (def-api session cli importaddress identity [address [label rescan p2sh]])
 	  (def-api session cli importdescriptors identity [requests])
 	  (def-api session cli importmulti identity [requests [options]])
@@ -278,9 +277,6 @@
 	;  == Zmq ==
 	  (def-api session cli getzmqnotifications json/read-str)
 	  
-	  (defmacro h [cmd]
-	    `(println (help ~(str cmd))))
-	  
 	  (defn _blocks 
 	    ([block-fn] (_blocks block-fn 0 (getblockcount)))
 	    ([block-fn i n] (if (< i n)
@@ -311,6 +307,16 @@
 	          decoded-txs (map (comp decoderawtransaction getrawtransaction) txs)
 	          outs (map #(% "vout") decoded-txs)]
 	      (reduce add-vout 0.0 outs)))
+   
+   (defmacro btc-doc [the-fn]
+     `(let [m# (-> ~the-fn var meta)]
+        (println (format 
+                   "%s/%s\n%s\n\n%s" 
+                   (-> m# :ns str) 
+                   (:name m#)
+                   (:arglists m#)
+                   (help (:name m#))
+                   ))))
    
    session)))
 
