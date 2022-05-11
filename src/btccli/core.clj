@@ -325,29 +325,6 @@
                      ))
           (throw (IllegalArgumentException. (format "%s is not a bitcoin function" name#))))))
    
-   
-   (defn insert-this [args]
-     (vec (concat ['this] args)))
-   
-   (defn cmd-fn-of [name]
-     (let [cmd-fn (symbol name)
-           method-name (symbol (str "btc_" name))
-           args (map insert-this (-> ((ns-publics *ns*) cmd-fn) meta :arglists))]
-       `(~method-name ~@args)
-       )
-   )
-
-   
-   (def cmd-data (map cmd-fn-of cmd-names))
-     
-   
-     
-   
-   (defmacro def-java-protocol []
-     `(defprotocol ~'BtcCli
-        ~@cmd-data
-        ))
-   
    (defn field-decl-of [name]
      (format "private final IFn %s;" name))
    
@@ -355,7 +332,7 @@
      (reduce (fn [acc v] (if acc (format "%s\n   %s" acc (field-decl-of v)) (format "   %s" (field-decl-of v)))) nil cmd-names))
    
    (defn init-field [name]
-     (format "      %s=var(BTCCLI_CORE, \"%s\");" name name)
+     (format "      %s = var(BTCCLI_CORE, \"%s\");" name name)
      )
 
    (defn inits [the-fn]
@@ -379,13 +356,16 @@
      (format "%s.invoke(%s)" name (java-call-args-of args))
      )
    
+   (defn tabbed-of [doc]
+     (reduce (fn [acc v] (if acc (format "%s\n%s" acc v) v)) nil (map #(format "    * %s" %) (.split doc "\n"))))
+   
    (defn doc-of [name args]
-     (format "/**\n%s\n*/" (help name)) 
+     (format "   /**\n%s\n    */" (tabbed-of (help name))) 
      )
    
    (defn init-arity [name args]
      (let [args (map (comp #(.replaceAll % "-" "_") str) args)]
-       (format "%s\npublic Object %s(%s) { return %s; }" 
+       (format "%s\n   public Object %s(%s) { return %s; }\n" 
                (doc-of name args)
                name 
                (if (empty? args)
@@ -397,7 +377,7 @@
    (defn init-method [name]
      (let [cmd-fn (symbol name)
            args (-> ((ns-publics *ns*) cmd-fn) meta :arglists)]
-       (reduce (fn [acc v] (if acc (format "%s\nd\n%s" acc v) v)) nil (map (partial init-arity name) args))))
+       (reduce (fn [acc v] (if acc (format "%s\n\n%s" acc v) v)) nil (map (partial init-arity name) args))))
    
    (defn init-methods []
      (inits init-method)
@@ -408,7 +388,10 @@
 (format "package btccli;
 import clojure.lang.IFn;
 import static clojure.java.api.Clojure.var;
-class BtcCli extends AbstractBtcCli {
+/**
+  * Bitcoin core API on Umbrel via SSH. 
+  */
+public class BtcCli extends AbstractBtcCli {
 %s
    public BtcCli(String password) {
       super(password);
@@ -437,4 +420,6 @@ class BtcCli extends AbstractBtcCli {
   )
 
 
+
+  
   
