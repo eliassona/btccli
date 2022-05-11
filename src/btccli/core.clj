@@ -397,7 +397,7 @@
    (defn init-method [name]
      (let [cmd-fn (symbol name)
            args (-> ((ns-publics *ns*) cmd-fn) meta :arglists)]
-       (reduce (fn [acc v] (if acc (format "%s\n\n%s" acc v) v)) nil (map (partial init-arity name) args))))
+       (reduce (fn [acc v] (if acc (format "%s\nd\n%s" acc v) v)) nil (map (partial init-arity name) args))))
    
    (defn init-methods []
      (inits init-method)

@@ -3,6 +3,9 @@ package btccli;
 import static clojure.java.api.Clojure.read;
 import static clojure.java.api.Clojure.var;
 
+import com.jcraft.jsch.JSch;
+import com.jcraft.jsch.Session;
+
 import clojure.lang.IFn;
 
 abstract public class AbstractBtcCli {
@@ -11,7 +14,7 @@ abstract public class AbstractBtcCli {
 	protected static final String BTCCLI_CORE = "btccli.core";
 	static private final IFn require;
 	static private final IFn createApi;
-	protected final Object session;
+	protected final Session session;
 
 	static {
 		require = var(CLOJURE_CORE, "require");
@@ -21,11 +24,15 @@ abstract public class AbstractBtcCli {
 	
 	
 	protected AbstractBtcCli(final String password) {
-		session = createApi.invoke(password);
+		session = (Session) createApi.invoke(password);
 		
 	}
 	@Override
 	public String toString() {
 		return session.toString();
+	}
+	
+	public void disconnect() {
+		session.disconnect();
 	}
 }
