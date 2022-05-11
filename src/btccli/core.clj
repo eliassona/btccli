@@ -349,7 +349,7 @@
         ))
    
    (defn field-decl-of [name]
-     (format "public final IFn %s;" name))
+     (format "private final IFn %s;" name))
    
    (defn field-decls []
      (reduce (fn [acc v] (if acc (format "%s\n   %s" acc (field-decl-of v)) (format "   %s" (field-decl-of v)))) nil cmd-names))
@@ -368,22 +368,36 @@
      )
    
    (defn java-args-of [arg]
-     
-     (format "Object %s" (.replaceAll (str arg) "-" "_"))
+     (format "Object %s" arg))
+   
+   (defn java-call-args-of [args]
+     (if (empty? args)
+       ""
+       (reduce (fn [acc v] (if acc (format "%s, %s" acc v) v)) nil args)))     
+   
+   (defn java-call-of [name args]
+     (format "%s.invoke(%s)" name (java-call-args-of args))
+     )
+   
+   (defn doc-of [name args]
+     (format "/**\n%s\n*/" (help name)) 
      )
    
    (defn init-arity [name args]
-     (format "public Object %s(%s) { return null; }" 
-             name 
-             (if (empty? args)
-               ""
-               (reduce (fn [acc v] (if acc (format "%s, %s" acc v) v)) nil (map java-args-of args)))))
+     (let [args (map (comp #(.replaceAll % "-" "_") str) args)]
+       (format "%s\npublic Object %s(%s) { return %s; }" 
+               (doc-of name args)
+               name 
+               (if (empty? args)
+                 ""
+                 (reduce (fn [acc v] (if acc (format "%s, %s" acc v) v)) nil (map java-args-of args)))
+               (java-call-of name args))))
      
    
    (defn init-method [name]
      (let [cmd-fn (symbol name)
            args (-> ((ns-publics *ns*) cmd-fn) meta :arglists)]
-       (reduce (fn [acc v] (if acc (format "%s\n%s" acc v) v)) nil (map (partial init-arity name) args))))
+       (reduce (fn [acc v] (if acc (format "%s\n\n%s" acc v) v)) nil (map (partial init-arity name) args))))
    
    (defn init-methods []
      (inits init-method)
@@ -391,8 +405,7 @@
    
    (defn java-gen [dir]
      (spit (File. dir "BtcCli.java") 
-(format "
-package btccli;
+(format "package btccli;
 import clojure.lang.IFn;
 import static clojure.java.api.Clojure.var;
 class BtcCli extends AbstractBtcCli {
