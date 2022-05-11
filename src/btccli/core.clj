@@ -4,8 +4,10 @@
             [clojure.repl :refer [source doc]]
             [clojure.java.shell :refer [sh]]
             [base58.core :as base58])
-  (:import [com.jcraft.jsch JSch]
-           [java.io ByteArrayOutputStream]))
+  (:import [java.io File]
+           [com.jcraft.jsch JSch]
+           [java.io ByteArrayOutputStream]
+           ))
 
 (defmacro dbg [body]
   `(let [x# ~body]
@@ -106,6 +108,8 @@
   (let [lines (.split s "\n")]
     (map (comp first #(.split % "[ \n]")) (filter only-names lines)))
   )
+
+
 
 
 (defn create-api
@@ -256,7 +260,7 @@
 	  (def-api session cli psbtbumpfee identity [txid [ options]])
 	  (def-api session cli removeprunedfunds identity [txid])
 	  (def-api session cli rescanblockchain identity [[start_height stop_height]])
-	  (def-api session cli _send identity [address-datas [conf_target estimate_mode fee_rate options]])
+	  (def-api session cli send identity [address-datas [conf_target estimate_mode fee_rate options]])
 	  (def-api session cli sendmany identity [address [minconf comment addresses replaceable conf_target estimate_mode fee_rate verbose]])
 	  (def-api session cli sendtoaddress identity [address amount [comment comment_to subtractfeefromamount replaceable conf_target estimate_mode avoid_reuse fee_rate verbose]])
 	  (def-api session cli sethdseed identity [[newkeypool seed]])
@@ -321,6 +325,90 @@
                      ))
           (throw (IllegalArgumentException. (format "%s is not a bitcoin function" name#))))))
    
+   
+   (defn insert-this [args]
+     (vec (concat ['this] args)))
+   
+   (defn cmd-fn-of [name]
+     (let [cmd-fn (symbol name)
+           method-name (symbol (str "btc_" name))
+           args (map insert-this (-> ((ns-publics *ns*) cmd-fn) meta :arglists))]
+       `(~method-name ~@args)
+       )
+   )
+
+   
+   (def cmd-data (map cmd-fn-of cmd-names))
+     
+   
+     
+   
+   (defmacro def-java-protocol []
+     `(defprotocol ~'BtcCli
+        ~@cmd-data
+        ))
+   
+   (defn field-decl-of [name]
+     (format "public final IFn %s;" name))
+   
+   (defn field-decls []
+     (reduce (fn [acc v] (if acc (format "%s\n   %s" acc (field-decl-of v)) (format "   %s" (field-decl-of v)))) nil cmd-names))
+   
+   (defn init-field [name]
+     (format "      %s=var(BTCCLI_CORE, \"%s\");" name name)
+     )
+
+   (defn inits [the-fn]
+     (reduce (fn [acc v] (if acc (format "%s\n%s" acc v) v)) nil (map the-fn cmd-names))
+     )
+
+   
+   (defn init-fields []
+     (inits init-field)
+     )
+   
+   (defn java-args-of [arg]
+     
+     (format "Object %s" (.replaceAll (str arg) "-" "_"))
+     )
+   
+   (defn init-arity [name args]
+     (format "public Object %s(%s) { return null; }" 
+             name 
+             (if (empty? args)
+               ""
+               (reduce (fn [acc v] (if acc (format "%s, %s" acc v) v)) nil (map java-args-of args)))))
+     
+   
+   (defn init-method [name]
+     (let [cmd-fn (symbol name)
+           args (-> ((ns-publics *ns*) cmd-fn) meta :arglists)]
+       (reduce (fn [acc v] (if acc (format "%s\n%s" acc v) v)) nil (map (partial init-arity name) args))))
+   
+   (defn init-methods []
+     (inits init-method)
+     )
+   
+   (defn java-gen [dir]
+     (spit (File. dir "BtcCli.java") 
+(format "
+package btccli;
+import clojure.lang.IFn;
+import static clojure.java.api.Clojure.var;
+class BtcCli extends AbstractBtcCli {
+%s
+   public BtcCli(String password) {
+      super(password);
+%s
+   }
+%s
+}
+
+" (field-decls) 
+  (init-fields)
+  (init-methods))))
+
+   
    session)))
 
 
@@ -335,3 +423,5 @@
   (def raw-tx (getrawtransaction (nth ((getblock (getblockhash 200000)) "tx") 384)))
   )
 
+
+  
