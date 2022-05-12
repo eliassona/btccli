@@ -19,7 +19,7 @@ abstract public class AbstractBtcCli {
 	static {
 		require = var(CLOJURE_CORE, "require");
 		require.invoke(read(BTCCLI_CORE));
-		createApi = var(BTCCLI_CORE, "create-api");
+		createApi = createFn("create-api");
 	}
 	
 	
@@ -27,6 +27,11 @@ abstract public class AbstractBtcCli {
 		session = (Session) createApi.invoke(password);
 		
 	}
+	
+	protected final static IFn createFn(String fnName) {
+		return var(BTCCLI_CORE, fnName);
+	}
+	
 	@Override
 	public String toString() {
 		return session.toString();

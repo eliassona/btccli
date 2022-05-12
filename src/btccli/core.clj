@@ -76,7 +76,7 @@
           ba)))))
 
 (defn apply-json-if-coll [arg]
-  (if (coll? arg) (json/json-str arg) arg))
+  (if (instance? java.util.List arg) (json/json-str arg) arg))
 
 (defn apply-json [args]
   (map (fn [a] `(apply-json-if-coll ~a)) args))
@@ -340,8 +340,7 @@
      (reduce (fn [acc v] (if acc (format "%s\n   %s" acc (field-decl-of v)) (format "   %s" (field-decl-of v)))) nil cmd-names))
    
    (defn init-field [name]
-     (format "      %s = var(BTCCLI_CORE, \"%s\");" name name)
-     )
+     (format "      %s = createFn(\"%s\");" name name))
 
    (defn inits [the-fn]
      (reduce (fn [acc v] (if acc (format "%s\n%s" acc v) v)) nil (map the-fn cmd-names))
