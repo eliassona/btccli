@@ -286,7 +286,7 @@
    
     (let [d (difference (set (map symbol cmd-names)) (set (keys (ns-publics *ns*))))]
       (when (not (empty? d))
-        (throw (IllegalStateException. (format "Definitions for %s are missing" d)))))
+        (println (format "Warning! Definitions for %s are missing" d))))
    
    
 	  (defn _blocks 
