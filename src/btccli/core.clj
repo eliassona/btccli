@@ -3,7 +3,8 @@
   (:require [clojure.data.json :as json]
             [clojure.repl :refer [source doc]]
             [clojure.java.shell :refer [sh]]
-            [base58.core :as base58])
+            [base58.core :as base58]
+            [clojure.set :refer [difference]])
   (:import [java.io File]
            [com.jcraft.jsch JSch]
            [java.io ByteArrayOutputStream]
@@ -281,6 +282,13 @@
 	;  == Zmq ==
 	  (def-api session cli getzmqnotifications json/read-str)
 	  
+   
+   
+    (let [d (difference (set (map symbol cmd-names)) (set (keys (ns-publics *ns*))))]
+      (when (not (empty? d))
+        (throw (IllegalStateException. (format "Definitions for %s are missing" d)))))
+   
+   
 	  (defn _blocks 
 	    ([block-fn] (_blocks block-fn 0 (getblockcount)))
 	    ([block-fn i n] (if (< i n)
