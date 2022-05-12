@@ -115,10 +115,9 @@
 
 (defn create-api
   ([password]
-    (create-api password umbrel-cli))
-  ([password cli]
-  
-  (let [session (ssh-session "umbrel" "umbrel.local" 22 password)
+    (create-api password umbrel-cli "umbrel" "umbrel.local" 22))
+  ([password cli user host port]
+  (let [session (ssh-session user host port password)
         cmd-names (set (parse-names (cli session "help")))]    
     
 	;   == Blockchain ==   
@@ -284,11 +283,11 @@
 	  
    
    
-    (let [d (difference (set (map symbol cmd-names)) (set (keys (ns-publics *ns*))))]
+    (let [d (difference (set (map symbol cmd-names)) (set (keys (ns-publics (create-ns 'btccli.core)))))]
       (when (not (empty? d))
         (println (format "Warning! Definitions for %s are missing" d))))
    
-   
+;; some functions using the API   
 	  (defn _blocks 
 	    ([block-fn] (_blocks block-fn 0 (getblockcount)))
 	    ([block-fn i n] (if (< i n)
@@ -320,7 +319,9 @@
 	          outs (map #(% "vout") decoded-txs)]
 	      (reduce add-vout 0.0 outs)))
    
-   (defmacro btc-doc [the-fn]
+   (defmacro btc-doc
+     "documentation for each cmd"
+     [the-fn]
      `(let [m# (-> ~the-fn var meta)
             name# (:name m#)]
         (if (contains? ~cmd-names (str name#))
@@ -332,6 +333,8 @@
                      (help name#)
                      ))
           (throw (IllegalArgumentException. (format "%s is not a bitcoin function" name#))))))
+
+;; javagen
    
    (defn field-decl-of [name]
      (format "private final IFn %s;" name))
@@ -383,7 +386,7 @@
    
    (defn init-method [name]
      (let [cmd-fn (symbol name)
-           args (-> ((ns-publics *ns*) cmd-fn) meta :arglists)]
+           args (-> ((ns-publics (create-ns 'btccli.core)) cmd-fn) meta :arglists)]
        (reduce (fn [acc v] (if acc (format "%s\n\n%s" acc v) v)) nil (map (partial init-arity name) args))))
    
    (defn init-methods []
