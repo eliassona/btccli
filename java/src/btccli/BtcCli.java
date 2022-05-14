@@ -146,8 +146,11 @@ public class BtcCli extends AbstractBtcCli {
    private final IFn gettransaction;
    private final IFn gettxout;
    private final IFn importaddress;
-   public BtcCli(String password) {
-      super(password);
+   public static final BtcCli createUmbrel(final String password) {
+      return new BtcCli(createUmbrelSession(password)); 
+   } 
+   public BtcCli(final IFn sessionFn) {
+      super(sessionFn);
       decodepsbt = createFn("decodepsbt");
       stop = createFn("stop");
       logging = createFn("logging");
@@ -9778,7 +9781,7 @@ public class BtcCli extends AbstractBtcCli {
     *   "address" : "str"     (string) The address as confirmed by the signer
     * }
     */
-   public Object walletdisplayaddress(Object bitcoin, Object address, Object to, Object display) { return walletdisplayaddress.invoke(bitcoin, address, to, display); }
+   public Object walletdisplayaddress(Object address) { return walletdisplayaddress.invoke(address); }
 
    /**
     * getnodeaddresses ( count "network" )
