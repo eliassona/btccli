@@ -146,12 +146,21 @@ public class BtcCli extends AbstractBtcCli {
    private final IFn gettransaction;
    private final IFn gettxout;
    private final IFn importaddress;
+
+   /**
+    * Create a btc api that uses umbrel via ssh
+    */
    public static final BtcCli createUmbrel(final String password) {
       return new BtcCli(createUmbrelSession(password)); 
-   } 
+   }
+   
+   /**
+    * Create a btc api that uses the command line locally
+    */
    public static final BtcCli createCmdLine() {
       return new BtcCli(cmdLine()); 
    } 
+
    public BtcCli(final IFn sessionFn) {
       super(sessionFn);
       decodepsbt = createFn("decodepsbt");

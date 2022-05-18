@@ -416,12 +416,21 @@ import static clojure.java.api.Clojure.var;
   */
 public class BtcCli extends AbstractBtcCli {
 %s
+
+   /**
+    * Create a btc api that uses umbrel via ssh
+    */
    public static final BtcCli createUmbrel(final String password) {
       return new BtcCli(createUmbrelSession(password)); 
-   } 
+   }
+   
+   /**
+    * Create a btc api that uses the command line locally
+    */
    public static final BtcCli createCmdLine() {
       return new BtcCli(cmdLine()); 
    } 
+
    public BtcCli(final IFn sessionFn) {
       super(sessionFn);
 %s
