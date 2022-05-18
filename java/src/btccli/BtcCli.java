@@ -149,6 +149,9 @@ public class BtcCli extends AbstractBtcCli {
    public static final BtcCli createUmbrel(final String password) {
       return new BtcCli(createUmbrelSession(password)); 
    } 
+   public static final BtcCli createCmdLine() {
+      return new BtcCli(cmdLine()); 
+   } 
    public BtcCli(final IFn sessionFn) {
       super(sessionFn);
       decodepsbt = createFn("decodepsbt");

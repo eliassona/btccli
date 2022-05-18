@@ -12,12 +12,14 @@ abstract public class AbstractBtcCli {
 	static private final IFn require;
 	static private final IFn createApi;
 	private static final IFn createUmbrelSession;
+	private static final IFn cmdLine;
 
 	static {
 		require = var(CLOJURE_CORE, "require");
 		require.invoke(read(BTCCLI_CORE));
 		createApi = createFn("create-api");
 		createUmbrelSession = createFn("create-umbrel-session");
+		cmdLine = createFn("cmdline");
 	}
 	
 	
@@ -29,6 +31,11 @@ abstract public class AbstractBtcCli {
 	protected static IFn  createUmbrelSession(final String password) {
 		return (IFn)createUmbrelSession.invoke(password);
 	}
+	
+	protected static IFn  cmdLine() {
+		return (IFn)cmdLine.invoke();
+	}
+	
 	
 	protected final static IFn createFn(final String fnName) {
 		return var(BTCCLI_CORE, fnName);

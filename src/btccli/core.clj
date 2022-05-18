@@ -8,6 +8,7 @@
   (:import [java.io File]
            [com.jcraft.jsch JSch]
            [java.io ByteArrayOutputStream]
+           [java.net Socket]
            
            ))
 
@@ -48,7 +49,11 @@
   (fn [cmd]
     (session (format "cd ~/umbrel/bin; docker exec bitcoin bitcoin-cli %s" cmd))))
 
-
+(defn cmdline [cmd]
+  (let [res (sh (format "bitcoin-cli %s" cmd))]
+    (if (= :exit 0)
+      (:out cmd)
+      (throw (RuntimeException. "cmd error")))))
     
 (defn format-str-of [n]
   (reduce 
@@ -414,6 +419,9 @@ public class BtcCli extends AbstractBtcCli {
    public static final BtcCli createUmbrel(final String password) {
       return new BtcCli(createUmbrelSession(password)); 
    } 
+   public static final BtcCli createCmdLine() {
+      return new BtcCli(cmdLine()); 
+   } 
    public BtcCli(final IFn sessionFn) {
       super(sessionFn);
 %s
@@ -435,7 +443,6 @@ public class BtcCli extends AbstractBtcCli {
   ;problem tx, it's too big for ssh?
   (def raw-tx (getrawtransaction (nth ((getblock (getblockhash 200000)) "tx") 384)))
   )
-
 
 
   
