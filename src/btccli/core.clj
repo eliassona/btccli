@@ -24,6 +24,20 @@
 
 (def parser (insta/parser (clojure.java.io/resource "btccli.bnf")))
 
+(def ast->clj-map 
+  {:argname (fn [& args] (apply str args))
+   :cmdname (fn [& args] (symbol (apply str args)))
+   :cmdline (fn [cmd & args] `(def-api ~cmd ~@args))
+   :arg identity
+   :regulararg symbol
+   :stringarg symbol
+   :reqarg identity
+   :optarg (fn [& args] `[~@args])
+   })
+
+(defn ast->clj [ast]
+  (insta/transform ast->clj-map ast))
+
 
 (defn ssh-session [user host port password]
   (let [session (.getSession (JSch.) user host port)
@@ -137,13 +151,14 @@
         arg))))
 
 
+
 (defn change-json-arg [l]
   (let [args (rest l)]
     (clojure.string/join " " (conj (map-indexed proper-arg-of args) (first l)))))
 
 (defn parse-names2 [s]
   (let [lines (.split s "\n")]
-    (map (comp change-json-arg #(.split % "[ \n]")) (filter only-names lines)))
+    (clojure.string/join "\n" (map (comp change-json-arg #(.split % "[ \n]")) (filter only-names lines))))
   )
 
 
