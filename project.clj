@@ -6,5 +6,6 @@
   :dependencies [[org.clojure/clojure "1.10.0"]
                  [org.clojure/data.json "0.2.6"]
                  [com.jcraft/jsch "0.1.55"]
-                 [rm-hull/base58 "0.1.0"]]
+                 [rm-hull/base58 "0.1.0"]
+                 [instaparse "1.4.10"]]
   :repl-options {:init-ns btccli.core})

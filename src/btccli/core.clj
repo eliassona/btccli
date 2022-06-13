@@ -4,7 +4,9 @@
             [clojure.repl :refer [source doc]]
             [clojure.java.shell :refer [sh]]
             [base58.core :as base58]
-            [clojure.set :refer [difference]])
+            [clojure.set :refer [difference]]
+            [instaparse.core :as insta]
+            )
   (:import [java.io File]
            [com.jcraft.jsch JSch]
            [java.io ByteArrayOutputStream]
@@ -19,6 +21,8 @@
   `(let [x# ~body]
      (println "dbg:" '~body "=" x#)
      x#))
+
+(def parser (insta/parser (clojure.java.io/resource "btccli.bnf")))
 
 
 (defn ssh-session [user host port password]
@@ -121,6 +125,25 @@
 (defn parse-names [s]
   (let [lines (.split s "\n")]
     (map (comp first #(.split % "[ \n]")) (filter only-names lines)))
+  )
+
+(defn proper-arg-of [index arg]
+  (if (= arg "\"\"")
+    (symbol (str "dummy" index))
+    (let [ix0 (.indexOf arg "[")
+          ix1 (.indexOf arg "{")]
+      (if (or (= ix0 0) (= ix1 0))
+        (symbol (str "jsonarg" index))
+        arg))))
+
+
+(defn change-json-arg [l]
+  (let [args (rest l)]
+    (clojure.string/join " " (conj (map-indexed proper-arg-of args) (first l)))))
+
+(defn parse-names2 [s]
+  (let [lines (.split s "\n")]
+    (map (comp change-json-arg #(.split % "[ \n]")) (filter only-names lines)))
   )
 
 
@@ -451,8 +474,19 @@ public class BtcCli extends AbstractBtcCli {
 (comment
   ;problem tx, it's too big for ssh?
   (def raw-tx (getrawtransaction (nth ((getblock (getblockhash 200000)) "tx") 384)))
+  (* 29666 370(/ ((estimatesmartfee 6) "feerate") 1000))
+
   )
 
 
   
+;May 31 17:02:11: 31/05 17:02:11, UltraTypeConverter#tryRefreshUltraPersistent, (#97, PGW.WFL_32329_recreate.01: Workflow pool 15)
+;May 31 17:02:11: WARNING: Refreshing UltraPersistent
+;May 31 17:02:11: 31/05 17:02:11, UltraTypeConverter#tryRefreshUltraPersistent, (#97, PGW.WFL_32329_recreate.01: Workflow pool 15)
+;May 31 17:02:11: WARNING: class=java.lang.RuntimeException, message=RCP is locked while running ECSA workflows
+;May 31 17:02:11: 31/05 17:02:11, UltraTypeConverter#tryRefreshUltraPersistent, (#97, PGW.WFL_32329_recreate.01: Workflow pool 15)
+;May 31 17:02:11: WARNING: _ultraPersistent is null
   
+
+
+
