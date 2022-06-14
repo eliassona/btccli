@@ -25,9 +25,10 @@
 (def parser (insta/parser (clojure.java.io/resource "btccli.bnf")))
 
 (def ast->clj-map 
-  {:argname (fn [& args] (apply str args))
-   :cmdname (fn [& args] (symbol (apply str args)))
-   :cmdline (fn [cmd & args] `(def-api ~cmd ~@args))
+  {:cmdlines (fn [& args] (apply merge args))
+   :argname (fn [& args] (apply str args))
+   :cmdname (fn [& args] (apply str args))
+   :cmdline (fn [cmd & args] `{~cmd [~@args]})
    :arg identity
    :regulararg symbol
    :stringarg symbol
@@ -123,9 +124,14 @@
      ~cmd
      ~@(map (partial arity-of session cmd conv-fn) (args-of args))))
 
+(defn generic-args [cmd args]
+  (if (map? args)
+    (args (str cmd))
+    args))
+
 (defmacro def-api 
   ([session cmd conv-fn args]
-    (defn-of session cmd conv-fn args))
+    (defn-of session cmd conv-fn (generic-args cmd args)))
   ([session cmd conv-fn]
     `(def-api ~session ~cmd ~conv-fn []))
   ([session cmd]
@@ -166,7 +172,9 @@
 
 (defn create-api
   ([session]
-  (let [cmd-names (set (parse-names (session "help")))]    
+  (let [cmds (session "help")
+        cmd-names (set (parse-names cmds))
+        cmd-and-args (-> cmds parse-names2 parser ast->clj)]    
     
 	;   == Blockchain ==   
 	  (def-api session getbestblockhash .trim)
