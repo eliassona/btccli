@@ -119,24 +119,22 @@
        (~conv-fn 
          (~session (escape-quotation (format ~(format-str-of (inc (count args))) ~(str cmd) ~@(apply-json args)))))))
 
-(defn defn-of [session cmd conv-fn args]
+(defmacro defn-of [session cmd conv-fn args]
   `(defn 
      ~cmd
      ~@(map (partial arity-of session cmd conv-fn) (args-of args))))
 
-(defn generic-args [cmd args]
-  (if (map? args)
-    (args (str cmd))
-    args))
+
 
 (defmacro def-api 
   ([session cmd conv-fn args]
-    (defn-of session cmd conv-fn (generic-args cmd args)))
+    `(defn-of ~session ~cmd ~conv-fn ~(dbg args)))
   ([session cmd conv-fn]
     `(def-api ~session ~cmd ~conv-fn []))
   ([session cmd]
     `(def-api ~session ~cmd identity))
   )
+
 
 (defn only-names [l]
   (let [l (.trim l)]
@@ -172,9 +170,11 @@
 
 (defn create-api
   ([session]
+  
   (let [cmds (session "help")
         cmd-names (set (parse-names cmds))
-        cmd-and-args (-> cmds parse-names2 parser ast->clj)]    
+        cmd-and-args (-> cmds parse-names2 parser ast->clj)
+        ]
     
 	;   == Blockchain ==   
 	  (def-api session getbestblockhash .trim)
@@ -503,13 +503,3 @@ public class BtcCli extends AbstractBtcCli {
 
 
   
-;May 31 17:02:11: 31/05 17:02:11, UltraTypeConverter#tryRefreshUltraPersistent, (#97, PGW.WFL_32329_recreate.01: Workflow pool 15)
-;May 31 17:02:11: WARNING: Refreshing UltraPersistent
-;May 31 17:02:11: 31/05 17:02:11, UltraTypeConverter#tryRefreshUltraPersistent, (#97, PGW.WFL_32329_recreate.01: Workflow pool 15)
-;May 31 17:02:11: WARNING: class=java.lang.RuntimeException, message=RCP is locked while running ECSA workflows
-;May 31 17:02:11: 31/05 17:02:11, UltraTypeConverter#tryRefreshUltraPersistent, (#97, PGW.WFL_32329_recreate.01: Workflow pool 15)
-;May 31 17:02:11: WARNING: _ultraPersistent is null
-  
-
-
-
